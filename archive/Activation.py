@@ -2,6 +2,7 @@ import numpy as np
 
 
 class Activation:
+    @staticmethod
     def sigmoid(Z, activation_cache=None, derivative=False):
         """The sigmoid function is an S-shaped function with values between 0 and 1.
         It is often used to predict the probability of an output."""
@@ -40,7 +41,8 @@ class Activation:
         else:
             return np.maximum(leakage * Z, Z)
 
-    def leakyRelu(self, Z, activation_cache=None, derivative=False):
+    @staticmethod
+    def leakyRelu(Z, activation_cache=None, derivative=False):
         """Leaky Rectified Linear Unit with leaky slope 0.01.
 
         An attempt to prevent zero gradients with ReLU by increasing the range.
@@ -53,7 +55,8 @@ class Activation:
         :param derivative:
         :return:
         """
-        return self.relu(Z, activation_cache, derivative, leakage=0.01)
+        return Activation.relu(Z, activation_cache, derivative, leakage=0.01)
 
+    @staticmethod
     def none(Z, **kwargs):
         return Z

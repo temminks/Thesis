@@ -38,8 +38,8 @@ class Model:
             raise AttributeError
 
         self.learning_rate = learning_rate
-        self.first_moment = [0] * (self.L - 1)  # mean estimate
-        self.second_moment = [0] * (self.L - 1) # uncentered variance
+        self.first_moment = [0] * (self.L - 1)   # mean estimate
+        self.second_moment = [0] * (self.L - 1)  # uncentered variance
         self.first_moment_bias = [0] * (self.L - 1)
         self.second_moment_bias = [0] * (self.L - 1)
 
@@ -80,22 +80,19 @@ class Model:
         return self.activation(z), [(inputs, weights, bias), z]
 
     def predict(self, X):
-        ''' Predicts the output for the input X. The input X can be interpreted
+        """Predicts the output for the input X. The input X can be interpreted
         as the activation output of the 0th layer.
 
         Parameters
         ----------
         X: int, list, numpy.ndarray
-            input vector
 
-        Returns
-        -------
-        numpy.ndarray
-            The output of the neural network.
-        dictionary
-            The cache of the parameters X, W, b ("linear cache") as well as the output of the
-            linear function z = wx + b
-        '''
+        :param X: input vector
+        :return: The output of the neural network and the cache of the
+        parameters X, W, b ("linear cache") as well as the output of the
+        linear function z = wx + b
+        :rtype: numpy.ndarray, dict
+        """
         cache = {}
         A = X
 
