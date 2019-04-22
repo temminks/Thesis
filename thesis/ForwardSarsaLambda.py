@@ -30,7 +30,8 @@ class ForwardSarsaLambda:
     * True Online TD Lambda with Fourier Basis
         * https://github.com/EllaBot/true-online-td-lambda/blob/master/true_online_td_lambda/true_online_td_lambda.py
     """
-    def __init__(self, episodes, projects: Project, model, lam=0.8,
+
+    def __init__(self, episodes, projects: list[Project], model, lam=0.8,
                  gamma=0.95, eta=0.01, epsilon=1.0, model_name=None):
         """ Initialises the algorithm's parameters.
 
@@ -74,9 +75,9 @@ class ForwardSarsaLambda:
         """Uses the Forward Sarsa(λ) algorithm to train the model."""
         for episode in range(self.episodes):
             if ((episode + 1) % len(self.projects)) == 0:
-                logging.info('episode: {}'.format((episode + 1)/len(self.projects)))
+                logging.info('episode: {}'.format((episode + 1) / len(self.projects)))
                 self.model.save_weights('.\\models\\' + self.model_name + '-' +
-                                        str(int(episode/len(self.projects))) + '.h5')
+                                        str(int(episode / len(self.projects))) + '.h5')
             target_sync = 0
             i = 0
             c = 1
@@ -90,7 +91,7 @@ class ForwardSarsaLambda:
 
                 if self.project.is_finished():
                     value_next = 0
-                    reward = 1/t
+                    reward = 1 / t
                 else:
                     value_next, action_next, durations_next, _ = self.act()
                     reward = 0
@@ -101,7 +102,7 @@ class ForwardSarsaLambda:
 
                 '''"We can avoid these blow-ups in an elegant way, by recomputing the K-bounded
                 λ-return from scratch every K time steps.", cf. p. 6'''
-                if i == self.K-1:
+                if i == self.K - 1:
                     target = target_sync
                     target_sync = v_current
                     i = 0
@@ -120,7 +121,7 @@ class ForwardSarsaLambda:
                         target = (target - rho_pop) / (self.gamma * self.lam)
 
             # results in a 5% epsilon in the last episode
-            self.epsilon = self.epsilon * np.exp(-(2.99573227355/self.episodes))
+            self.epsilon = self.epsilon * np.exp(-(2.99573227355 / self.episodes))
 
             if not ready:
                 target = target_sync
@@ -130,7 +131,7 @@ class ForwardSarsaLambda:
                 callbacks = [self.tensorboard] if len(self.F) == 1 else None
                 self.model.fit(x=value_pop, y=target, verbose=0, callbacks=callbacks)
                 if self.K != 1:
-                    target = (target - rho_pop)/(self.gamma * self.lam)
+                    target = (target - rho_pop) / (self.gamma * self.lam)
 
             logging.debug('epsilon:', int(self.epsilon))
 

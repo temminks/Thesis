@@ -1,5 +1,3 @@
-
-
 # https://github.com/openai/spinningup/blob/master/spinup/algos/ppo/ppo.py
 # https://github.com/openai/baselines/tree/master/baselines/ppo2
 # http://blog.varunajayasiri.com/ml/ppo.html
@@ -27,5 +25,6 @@ class PPO:
 
 class GAE:
     """Generalised Advantage Estimator"""
+
     def __init__(self):
         pass

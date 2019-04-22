@@ -1,6 +1,5 @@
 from thesis.Project import Project
 
-
 """
 Adjacency list of the first tasks of the 301_1 project
 1 - 2 -  3 -  4
@@ -33,7 +32,7 @@ def test_possible_tasks():
     """Tests for possible tasks at the beginning of the project."""
     project = Project(project_path)
     assert project.possible_tasks(1) == {2, 3, 4}, 'task 1 has possible' \
-        'successors, i.e. tasks whose predecessors are finished, {2, 3, 4}'
+                                                   'successors, i.e. tasks whose predecessors are finished, {2, 3, 4}'
 
 
 def test_possible_tasks_1():
@@ -41,7 +40,7 @@ def test_possible_tasks_1():
     project = Project(project_path)
     project.finished_tasks += [4]
     assert project.possible_tasks(1) == {2, 3}, 'after finishing task 4, ' \
-        'it is no longer a possible tasks'
+                                                'it is no longer a possible tasks'
 
 
 def test_possible_tasks_2():
@@ -49,7 +48,7 @@ def test_possible_tasks_2():
     project = Project(project_path)
     project.finished_tasks += [2, 3, 4]
     assert project.possible_tasks(1) == set(), 'after finishing task 2, 3 and 4,' \
-        'there are no more possible tasks.'
+                                               'there are no more possible tasks.'
 
 
 def test_possible_tasks_3():
@@ -57,9 +56,9 @@ def test_possible_tasks_3():
     project = Project(project_path)
     project.finished_tasks += [4, 9]
     assert project.possible_tasks(1) == {2, 3}, 'after finishing' \
-        " tasks [4, 9], we can start 1's successors, except 4"
+                                                " tasks [4, 9], we can start 1's successors, except 4"
     assert project.possible_tasks(4) == {5, 10}, 'after finishing' \
-        " tasks [4, 9], we can start 4's successors, except 9"
+                                                 " tasks [4, 9], we can start 4's successors, except 9"
 
 
 def test_get_actions():

@@ -1,6 +1,9 @@
+import numpy as np
+
 from archive.Activation import *
 
 
+# noinspection PyTypeChecker
 class Model:
     """This is the model or architecture of the neural network. This class
     uses the Adam optimiser as an improves method of stochastic gradient
@@ -38,7 +41,7 @@ class Model:
             raise AttributeError
 
         self.learning_rate = learning_rate
-        self.first_moment = [0] * (self.L - 1)   # mean estimate
+        self.first_moment = [0] * (self.L - 1)  # mean estimate
         self.second_moment = [0] * (self.L - 1)  # uncentered variance
         self.first_moment_bias = [0] * (self.L - 1)
         self.second_moment_bias = [0] * (self.L - 1)
@@ -49,7 +52,7 @@ class Model:
         self.parameters = {}
         if not parameters:
             for l in range(1, self.L):
-                self.parameters['W' + str(l)] = self.initialiser(layer_dims[l-1], layer_dims[l])
+                self.parameters['W' + str(l)] = self.initialiser(layer_dims[l - 1], layer_dims[l])
                 self.parameters['b' + str(l)] = np.zeros((layer_dims[l], 1))
         else:
             self.parameters = parameters
@@ -98,7 +101,7 @@ class Model:
 
         for l in range(1, self.L):
             A, cache[l] = self.forward_pass(A, self.parameters["W" + str(l)],
-                                            self.parameters["b" + str(l)], self.activation)
+                                            self.parameters["b" + str(l)])
         return A, cache
 
     def train(self, target, AL, cache, beta_1=0.9, beta_2=0.999, t=1):
@@ -114,14 +117,15 @@ class Model:
         """
         gradients = self.gradients(target, AL, cache)
         for l in range(self.L - 1, 0, -1):
-            self.first_moment[l-1] = self.first_moment[l-1] * beta_1 + (1 - beta_1) * \
-                                     gradients['dW' + str(l+1)]
-            self.first_moment_bias[l-1] = self.first_moment_bias[l-1] * beta_1 + (1 - beta_1) * \
-                                          gradients['db' + str(l+1)]
-            self.second_moment[l-1] = self.second_moment[l-1] * beta_2 + (1 - beta_2) * \
-                                      (gradients['dW' + str(l+1)] ** 2)
-            self.second_moment_bias[l-1] = self.second_moment_bias[l-1] * beta_2 + (1 - beta_2) * \
-                                           (gradients['db' + str(l+1)] ** 2)
+            self.first_moment[l - 1] = self.first_moment[l - 1] * beta_1 + (1 - beta_1) * \
+                                       gradients['dW' + str(l + 1)]
+            self.first_moment_bias[l - 1] = self.first_moment_bias[l - 1] * beta_1 + (1 - beta_1) * \
+                                            gradients['db' + str(l + 1)]
+            self.second_moment[l - 1] = self.second_moment[l - 1] * beta_2 + (1 - beta_2) * \
+                                        (gradients['dW' + str(l + 1)] ** 2)
+            self.second_moment_bias[l - 1] = self.second_moment_bias[l - 1] * beta_2 + (
+                        1 - beta_2) * \
+                                             (gradients['db' + str(l + 1)] ** 2)
 
             # bias correction
             first_moment_corrected = self.first_moment[l - 1] / (1 - (beta_1 ** t))
@@ -129,8 +133,10 @@ class Model:
             second_moment_corrected = self.second_moment[l - 1] / (1 - (beta_2 ** t))
             second_moment_bias_corrected = self.second_moment_bias[l - 1] / (1 - (beta_2 ** t))
 
-            weight_update = first_moment_corrected / (np.sqrt(second_moment_corrected) + self.epsilon)
-            bias_update = first_moment_bias_corrected / (np.sqrt(second_moment_bias_corrected) + self.epsilon)
+            weight_update = first_moment_corrected / (
+                        np.sqrt(second_moment_corrected) + self.epsilon)
+            bias_update = first_moment_bias_corrected / (
+                        np.sqrt(second_moment_bias_corrected) + self.epsilon)
             self.parameters['W' + str(l)] -= self.learning_rate * weight_update
             self.parameters['b' + str(l)] -= self.learning_rate * bias_update
 
@@ -149,13 +155,15 @@ class Model:
         grads = {}
         current_cache = cache[self.L - 1]
         dZ = self.derror(target, AL) * self.activation(AL, current_cache[1], derivative=True)
-        grads["dA" + str(self.L-1)], grads["dW" + str(self.L)], grads["db" + str(self.L)] = self.linear_backwards(
+        grads["dA" + str(self.L - 1)], grads["dW" + str(self.L)], grads[
+            "db" + str(self.L)] = self.linear_backwards(
             dZ, current_cache[0])
 
         for l in range(self.L - 2, 0, -1):
             current_cache = cache[l]
-            grads["dA" + str(l)], grads["dW" + str(l + 1)], grads["db" + str(l + 1)] = self.backwards(
-                                                grads["dA" + str(l + 1)], current_cache)
+            grads["dA" + str(l)], grads["dW" + str(l + 1)], grads[
+                "db" + str(l + 1)] = self.backwards(
+                grads["dA" + str(l + 1)], current_cache)
         return grads
 
     def backwards(self, dA, cache):

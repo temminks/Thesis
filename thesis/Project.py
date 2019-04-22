@@ -11,6 +11,7 @@ class Project:
     is parsed from a file in Patterson format and stored as a pandas DataFrame. This
     class is also used to construct a state vector.
     """
+
     def __init__(self, path, stochastic=None):
         with open(path, "r") as f:
             self.file = f.readlines()
@@ -130,7 +131,7 @@ class Project:
                                  in self.df.loc[successor].predecessors)]
 
         return set(possible_tasks) - set(self.running.keys()) - \
-            set(self.finished_tasks)
+               set(self.finished_tasks)
 
     def get_actions(self):
         """Get all feasible actions, i.e. those actions whose preceding tasks
@@ -173,8 +174,8 @@ class Project:
             self.running[t] = durations[t - 2]
 
         self.limits.available = self.limits.available.subtract(
-                pd.DataFrame(self.df.loc[key][self.limits.index]
-                             for key in action).sum(axis='rows'), fill_value=0)
+            pd.DataFrame(self.df.loc[key][self.limits.index]
+                         for key in action).sum(axis='rows'), fill_value=0)
 
         if len(self.running) > 0:
             time_next_finished = min(self.running.values())
@@ -237,8 +238,13 @@ class Project:
         # starting with task 2: task 1 is merely a dummy task with no information
         for task in range(2, self.num_of_tasks):
             encoded_durations.append(self.df.loc[task].duration if task in possible_tasks else 0)
-            encoded_resources.append(list(self.df.loc[task][['R 1', 'R 2', 'R 3', 'R 4']]) if task in possible_tasks else [0, 0, 0, 0])
-            encoded_successors.append(self.df.loc[task]['#successors'] if task in possible_tasks else 0)
+            encoded_resources.append(list(
+                self.df.loc[task][['R 1', 'R 2', 'R 3', 'R 4']]) if task in possible_tasks else [0,
+                                                                                                 0,
+                                                                                                 0,
+                                                                                                 0])
+            encoded_successors.append(
+                self.df.loc[task]['#successors'] if task in possible_tasks else 0)
             encoded_running_tasks.append(self.running[task] if task in self.running.keys() else 0)
 
         if self.stochastic:
@@ -252,5 +258,5 @@ class Project:
                 encoded_running_tasks]
         ]
 
-        return np.concatenate((durations, resources, successors, running_tasks)),\
-            np.squeeze(durations)
+        return np.concatenate((durations, resources, successors, running_tasks)), \
+               np.squeeze(durations)

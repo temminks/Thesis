@@ -13,7 +13,7 @@ class Activation:
             return 1 / (1 + np.exp(-Z))
 
     @staticmethod
-    def relu(Z, activation_cache=None, derivative=False, leakage=0):
+    def relu(Z, activation_cache=None, derivative=False, leakage=0.0):
         """Rectified Linear Unit activation function.
 
         The activation value of an input Z is the maximum of 0 and Z:

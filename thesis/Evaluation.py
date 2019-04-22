@@ -1,5 +1,4 @@
-from keras.layers import Dense
-from keras.models import Sequential
+import tensorflow.keras as K
 
 from thesis.ForwardSarsaLambda import ForwardSarsaLambda
 
@@ -21,17 +20,17 @@ class Evaluator:
 
     @staticmethod
     def build_model():
-        model = Sequential()
-        model.add(Dense(128,
-                        kernel_initializer='he_normal',
-                        activation='relu',
-                        input_shape=(1266, )))
-        model.add(Dense(128,
-                        kernel_initializer='he_normal',
-                        activation='relu'))
-        model.add(Dense(1,
-                        kernel_initializer='he_normal',
-                        activation='linear'))
+        model = K.models.Sequential()
+        model.add(K.layers.Dense(128,
+                                 kernel_initializer='he_normal',
+                                 activation='relu',
+                                 input_shape=(1266,)))
+        model.add(K.layers.Dense(128,
+                                 kernel_initializer='he_normal',
+                                 activation='relu'))
+        model.add(K.layers.Dense(1,
+                                 kernel_initializer='he_normal',
+                                 activation='linear'))
 
         model.compile(loss='mean_squared_error', optimizer='adam')
         return model

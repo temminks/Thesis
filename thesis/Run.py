@@ -67,6 +67,7 @@ class Runner:
 
 class J30Runner(Runner):
     """Loads the J30 projects."""
+
     def __init__(self, model, train=True, stochastic='uniform_2', episodes=50, gamma=0.95):
         super().__init__(model, stochastic, episodes, gamma)
 
@@ -85,6 +86,7 @@ class J30Runner(Runner):
 
 class ForwardSarsaLambdaRunner(J30Runner):
     """Runner class for the Forward Sarsa(λ) algorithm."""
+
     def __init__(self, model, train=True, stochastic='uniform_2', episodes=50, gamma=0.95,
                  lam=0.8, epsilon=1.0, eta=0.01, model_name=None):
         super().__init__(model, train, stochastic, episodes, gamma)
