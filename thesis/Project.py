@@ -17,7 +17,7 @@ class Project:
             self.file = f.readlines()
 
         self.path = path
-        self.general_df = self.general()
+        # self.general_df = self.general()
         self.project_df = self.project()
         self.num_of_tasks = int(self.project_df.loc['jobs (incl. supersource/sink )'])
         self.limits = self.resource_limits()
@@ -130,8 +130,7 @@ class Project:
                           if all(predecessor in self.finished_tasks for predecessor
                                  in self.df.loc[successor].predecessors)]
 
-        return set(possible_tasks) - set(self.running.keys()) - \
-               set(self.finished_tasks)
+        return set(possible_tasks) - set(self.running.keys()) - set(self.finished_tasks)
 
     def get_actions(self):
         """Get all feasible actions, i.e. those actions whose preceding tasks
@@ -179,7 +178,7 @@ class Project:
 
         if len(self.running) > 0:
             time_next_finished = min(self.running.values())
-            for key in self.running.keys():
+            for key in list(self.running.keys()):
                 self.running[key] -= time_next_finished
 
                 # free resources if the task is finished_tasks and remove the
@@ -216,9 +215,9 @@ class Project:
             if len(successors) > 0:
                 successors = np.add(successors, -1)
                 row[successors] = durations
-            topology.append(row)
+            topology.append(row.tolist())
 
-        return np.reshape(topology, (-1, 1))
+        return topology
 
     def state(self) -> np.array:
         """Representation of the projects state that consists of the running
@@ -239,16 +238,14 @@ class Project:
         for task in range(2, self.num_of_tasks):
             encoded_durations.append(self.df.loc[task].duration if task in possible_tasks else 0)
             encoded_resources.append(list(
-                self.df.loc[task][['R 1', 'R 2', 'R 3', 'R 4']]) if task in possible_tasks else [0,
-                                                                                                 0,
-                                                                                                 0,
-                                                                                                 0])
+                self.df.loc[task][['R 1', 'R 2', 'R 3', 'R 4']])
+                                     if task in possible_tasks else [0, 0, 0, 0])
             encoded_successors.append(
                 self.df.loc[task]['#successors'] if task in possible_tasks else 0)
             encoded_running_tasks.append(self.running[task] if task in self.running.keys() else 0)
 
         if self.stochastic:
-            encoded_durations = getattr(Stochastic, self.stochastic)(encoded_durations)
+            encoded_durations = self.get_stochastic_durations(encoded_durations)
 
         durations, resources, successors, running_tasks = [
             np.reshape(x, (-1, 1)) for x in [
@@ -259,4 +256,7 @@ class Project:
         ]
 
         return np.concatenate((durations, resources, successors, running_tasks)), \
-               np.squeeze(durations)
+            np.squeeze(durations)
+
+    def get_stochastic_durations(self, encoded_durations):
+        return getattr(Stochastic, self.stochastic)(encoded_durations)

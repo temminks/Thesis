@@ -1,12 +1,61 @@
 import logging
 from collections import deque
+from typing import List
 
 import numpy as np
 
 from thesis.Project import Project
 
 
-class ForwardSarsaLambda:
+class Agent:
+    def __init__(self, projects: List[Project], model):
+        self.model = model.model
+        self.projects = projects
+        self.project_id = 0
+        self.project = projects[self.project_id]
+        self.tensorboard = model.tensorboard
+        self.model_name = model.model_name
+        self.topology = np.reshape(self.project.adjacency(), (-1, 1))
+        self.num_of_tasks = self.project.num_of_tasks
+
+    def next_project(self):
+        """Reset the current project and switch the project to the next one."""
+        self.project.reset()
+        if self.project_id == len(self.projects) - 1:
+            self.project_id = 0
+        else:
+            self.project_id += 1
+        self.project = self.projects[self.project_id]
+        self.num_of_tasks = self.project.num_of_tasks
+
+    def input_vector(self, state, action, topology=True):
+        """Helper function to construct the input vector.
+
+        :param state:
+        :param action:
+        :param topology: when set to true the topology is used when creating
+        the input vector
+        :return:
+        """
+        actions = np.zeros((self.num_of_tasks, 1))
+        actions[action] = 1
+
+        if topology:
+            return np.concatenate((actions, state, self.topology)).reshape((1, -1))
+        else:
+            return np.concatenate((actions, state)).reshape((1, -1))
+
+    def cnn_topology(self):
+        pass
+
+    def get_best_action(self, state, actions):
+        inputs = np.squeeze(np.array([self.input_vector(state, action) for action in actions]))
+        action_values = np.squeeze(self.model.predict(inputs, len(inputs)))
+        max_val = np.argmax(action_values)
+        return action_values[max_val], actions[max_val], self.input_vector(state, actions[max_val])
+
+
+class ForwardSarsaLambda(Agent):
     """Implementation of the Forward Sarsa(λ) algorithm.
 
     This algorithm is based on the true online Sarsa(λ) algorithm by
@@ -31,8 +80,8 @@ class ForwardSarsaLambda:
         * https://github.com/EllaBot/true-online-td-lambda/blob/master/true_online_td_lambda/true_online_td_lambda.py
     """
 
-    def __init__(self, episodes, projects: list[Project], model, lam=0.8,
-                 gamma=0.95, eta=0.01, epsilon=1.0, model_name=None):
+    def __init__(self, episodes, projects: List[Project], model, lam=0.8,
+                 gamma=0.95, eta=0.01, epsilon=1.0):
         """ Initialises the algorithm's parameters.
 
         :param episodes:
@@ -45,8 +94,9 @@ class ForwardSarsaLambda:
         :param eta: η will typically be set to 0.01 or larger
         :param epsilon: greediness or exploration parameter ϵ ϵ [0, 1]. ϵ should
         start at a high value close or exactly 1 and decrease.
-        :param model_name:
         """
+
+        super().__init__(projects=projects, model=model)
 
         self.lam = lam
         self.gamma = gamma
@@ -57,15 +107,6 @@ class ForwardSarsaLambda:
         self.model = model.model
         self.c_final = (gamma * lam) ** (self.K - 1)
         self.F = deque(maxlen=self.K)
-        self.projects = projects
-        self.project_id = 0
-        self.project = projects[self.project_id]
-        self.num_of_tasks = self.project.num_of_tasks
-        self.num_of_parameters = 242  # TODO maybe change that into a function
-        self.tensorboard = model.tensorboard
-        self.model_name = model_name if model_name else "".join(
-            np.random.choice(list('abcdefghijklmnopqrstuvwxyz'), 7))
-        self.topology = self.project.adjacency()
 
     def __repr__(self):
         # TODO update the representation to fit the final version of the algorithm
@@ -116,7 +157,13 @@ class ForwardSarsaLambda:
                 if ready:
                     target += self.c_final * delta
                     state_pop, rho_pop = self.F.pop()
-                    self.model.fit(x=state_pop, y=target, verbose=0)
+                    try:
+                        self.model.fit(x=state_pop, y=target, verbose=0)
+                    except ValueError as e:
+                        print('Value Error!')
+                        print('x:', state_pop)
+                        print('y:', target)
+                        print(e)
                     if self.K != 1:
                         target = (target - rho_pop) / (self.gamma * self.lam)
 
@@ -137,18 +184,10 @@ class ForwardSarsaLambda:
 
             self.next_project()
 
-    def next_project(self):
-        """Reset the current project and switch the project to the next one."""
-        self.project.reset()
-        if self.project_id == len(self.projects) - 1:
-            self.project_id = 0
-        else:
-            self.project_id += 1
-        self.project = self.projects[self.project_id]
-
     def act(self):
-        """Taking actions is done in an ϵ-greedy fashion to allow sufficient
-        exploration: with a chance of ϵ the action is taken randomly and with
+        """Taking actions is done in an ϵ-greedy fashion to allow sufficient exploration.
+
+        With a chance of ϵ the action is taken randomly and with
         (1-ϵ) the action with the highest value will be executed. ϵ is usually
         decreasing during training to converge the policy's decision making
         process.
@@ -161,16 +200,7 @@ class ForwardSarsaLambda:
                 state_action = self.input_vector(state, best_action)
                 value = self.model.predict(state_action)
             else:
-                state_action = self.input_vector(state, None)
-                value = self.model.predict(state_action)
-                best_action = []
-
-                for action in actions:
-                    state_action = self.input_vector(state, action)
-                    v_temp = self.model.predict(state_action)
-                    if v_temp > value:
-                        value = v_temp
-                        best_action = action
+                value, best_action, state_action = self.get_best_action(state, actions)
         else:  # there is only the "do-nothing/wait" action
             state_action = self.input_vector(state, None)
             value = self.model.predict(state_action)
@@ -178,21 +208,3 @@ class ForwardSarsaLambda:
             durations = {}
 
         return value, best_action, durations, state_action
-
-    def input_vector(self, state, action, topology=True):
-        """Helper function to construct the input vector.
-
-        :param state:
-        :param action:
-        :param topology: when set to true the topology is used when creating
-        the input vector
-        :return:
-        """
-        actions = np.zeros((self.num_of_tasks, 1))
-        if action:
-            actions[action] = 1
-
-        if topology:
-            return np.concatenate((actions, state, self.topology)).reshape((1, -1))
-        else:
-            return np.concatenate((actions, state)).reshape((1, -1))

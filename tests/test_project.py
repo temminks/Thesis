@@ -31,32 +31,32 @@ project_path = "../data/J30/j301_1.sm"
 def test_possible_tasks():
     """Tests for possible tasks at the beginning of the project."""
     project = Project(project_path)
-    assert project.possible_tasks(1) == {2, 3, 4}, 'task 1 has possible' \
-                                                   'successors, i.e. tasks whose predecessors are finished, {2, 3, 4}'
+    assert project.possible_tasks(1) == {2, 3, 4}, \
+        'task 1 has possible successors, i.e. tasks whose predecessors are finished, {2, 3, 4}'
 
 
 def test_possible_tasks_1():
     """Tests for possible tasks at the beginning of the project."""
     project = Project(project_path)
     project.finished_tasks += [4]
-    assert project.possible_tasks(1) == {2, 3}, 'after finishing task 4, ' \
-                                                'it is no longer a possible tasks'
+    assert project.possible_tasks(1) == {2, 3},\
+        'after finishing task 4, it is no longer a possible tasks'
 
 
 def test_possible_tasks_2():
     """Tests for possible tasks with no possible tasks"""
     project = Project(project_path)
     project.finished_tasks += [2, 3, 4]
-    assert project.possible_tasks(1) == set(), 'after finishing task 2, 3 and 4,' \
-                                               'there are no more possible tasks.'
+    assert project.possible_tasks(1) == set(),\
+        'after finishing task 2, 3 and 4, there are no more possible tasks.'
 
 
 def test_possible_tasks_3():
     """Test for possible tasks."""
     project = Project(project_path)
     project.finished_tasks += [4, 9]
-    assert project.possible_tasks(1) == {2, 3}, 'after finishing' \
-                                                " tasks [4, 9], we can start 1's successors, except 4"
+    assert project.possible_tasks(1) == {2, 3},\
+        'after finishing tasks [4, 9], we can start 1\'s successors, except 4'
     assert project.possible_tasks(4) == {5, 10}, 'after finishing' \
                                                  " tasks [4, 9], we can start 4's successors, except 9"
 
@@ -83,3 +83,10 @@ def test_get_actions_2():
     project = Project(project_path)
     project.limits['available'] = [0, 0, 0, 0]
     assert project.get_actions() == [[]]
+
+
+def test_adjacency():
+    """"""
+    project = Project(project_path)
+    print(project.adjacency())
+    assert False

@@ -1,51 +1,57 @@
-import tensorflow.keras as K
+import numpy as np
 
-from thesis.ForwardSarsaLambda import ForwardSarsaLambda
+from thesis.ForwardSarsaLambda import Agent
+from thesis.Project import Project
+from thesis.Run import J30Runner
 
 
-class Evaluator:
-    def __init__(self, project, model_name, model=None):
-        self.model = self.build_model()
-        self.project = project
-        self.num_of_tasks = self.project.num_of_tasks
-        self.topology = self.project.adjacency()
+class Evaluator(J30Runner):
+    def __init__(self, model_name, model):
+        super().__init__(train=False)
+
         self.model_name = model_name
-        if not model:
-            self.model = self.build_model()
-        else:
-            self.model = model
+        self.model = model.model
+        self.agent = Agent(self.projects, model)
+        self.result = []
 
-    def load_weights(self):
-        self.model.load_weights('.\\models\\m-' + self.model_name + '\\' + self.model_name)
+    def load_weights(self, number):
+        self.model.load_weights('.\\models\\' + self.model_name + '\\' + self.model_name +
+                                '-' + str(number) + '.h5')
 
-    @staticmethod
-    def build_model():
-        model = K.models.Sequential()
-        model.add(K.layers.Dense(128,
-                                 kernel_initializer='he_normal',
-                                 activation='relu',
-                                 input_shape=(1266,)))
-        model.add(K.layers.Dense(128,
-                                 kernel_initializer='he_normal',
-                                 activation='relu'))
-        model.add(K.layers.Dense(1,
-                                 kernel_initializer='he_normal',
-                                 activation='linear'))
-
-        model.compile(loss='mean_squared_error', optimizer='adam')
-        return model
-
-    def evaluate(self):
-        """Runs a single project and returns the duration."""
+    def evaluate_project(self, project) -> float:
         t = 0
 
-        while not self.project.finished():
-            t += self.project.next(*self.act())
+        while not project.is_finished():
+            t += project.next(*self.act(project))
 
-        self.project.reset()
         return t
 
-    def act(self):
+    def evaluate_project_randomly(self, project) -> float:
+        t = 0
+        while not project.is_finished():
+            t += project.next(*self.act_randomly(project))
+
+        return t
+
+    def evaluate(self, num_of_iterations=100):
+        """Evaluates a single project for the number of iterations."""
+        durations = {}
+
+        for project in self.projects:
+            project_list = np.array([Project(project.path, stochastic=project.stochastic)
+                                     for _ in range(num_of_iterations)])
+            durations[project.path[-8:]] = np.vectorize(self.evaluate_project,
+                                                        otypes=[float])(project_list)
+
+        return durations
+
+    def evaluate_all(self, num_of_models, num_of_iterations=100):
+        for num_of_model in range(num_of_models):
+            print('evaluating model', num_of_model)
+            self.load_weights(num_of_model)
+            self.result.append(self.evaluate(num_of_iterations))
+
+    def act(self, project):
         """The action with the highest value is executed.
 
         This function is different from the act-function during training: If no
@@ -55,19 +61,28 @@ class Evaluator:
 
         :return: the best action and the durations of the tasks in the action
         """
-        state, durations = self.project.state()
-        actions = self.project.get_actions()
+        state, durations = project.state()
+        actions = project.get_actions()
 
         if len(actions) > 1:
-            value = -100000000
-            for action in actions:
-                state_action = ForwardSarsaLambda.input_vector(state, action)
-                v_temp = self.model.model.predict(state_action)
-                if v_temp > value and len(self.project.running) > 0:
-                    value = v_temp
-                    best_action = action
-
+            best_action = self.get_best_action(state, actions, project)
             return best_action, durations
         else:
             best_action = []
             return best_action, durations
+
+    @staticmethod
+    def act_randomly(project):
+        _, durations = project.state()
+        best_action = np.random.choice(project.get_actions())
+        return best_action, durations
+
+    def get_best_action(self, state, actions, project):
+        inputs = np.squeeze(np.array([self.agent.input_vector(state, action)
+                                      for action in actions]))
+        action_values = np.squeeze(self.model.predict(inputs, len(inputs)))
+        max_val = np.argmax(action_values)
+        # the wait/void action must not be the best action if there are no running tasks
+        if len(project.running) == 0 and actions[max_val] == []:
+            max_val = np.argmax(action_values[1:]) + 1
+        return actions[max_val]
