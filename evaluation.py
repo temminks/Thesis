@@ -1,8 +1,10 @@
+import pickle
+
 import numpy as np
 
-from thesis.ForwardSarsaLambda import Agent
-from thesis.Project import Project
-from thesis.Run import J30Runner
+from agents import Agent
+from project import Project
+from run import J30Runner
 
 
 class Evaluator(J30Runner):
@@ -26,13 +28,6 @@ class Evaluator(J30Runner):
 
         return t
 
-    def evaluate_project_randomly(self, project) -> float:
-        t = 0
-        while not project.is_finished():
-            t += project.next(*self.act_randomly(project))
-
-        return t
-
     def evaluate(self, num_of_iterations=100):
         """Evaluates a single project for the number of iterations."""
         durations = {}
@@ -50,6 +45,7 @@ class Evaluator(J30Runner):
             print('evaluating model', num_of_model)
             self.load_weights(num_of_model)
             self.result.append(self.evaluate(num_of_iterations))
+            pickle.dump(self.result, open(self.model_name + '-result-' + str(num_of_model), 'wb'))
 
     def act(self, project):
         """The action with the highest value is executed.
@@ -71,12 +67,6 @@ class Evaluator(J30Runner):
             best_action = []
             return best_action, durations
 
-    @staticmethod
-    def act_randomly(project):
-        _, durations = project.state()
-        best_action = np.random.choice(project.get_actions())
-        return best_action, durations
-
     def get_best_action(self, state, actions, project):
         inputs = np.squeeze(np.array([self.agent.input_vector(state, action)
                                       for action in actions]))
@@ -86,3 +76,28 @@ class Evaluator(J30Runner):
         if len(project.running) == 0 and actions[max_val] == []:
             max_val = np.argmax(action_values[1:]) + 1
         return actions[max_val]
+
+
+class Benchmarks(J30Runner):
+    """Some simple benchmark strategies for the stochastic RCPSP."""
+
+    def __init__(self):
+        super().__init__(train=False)
+
+    def evaluate_project_randomly(self, project) -> float:
+        t = 0
+        while not project.is_finished():
+            t += project.next(*self.act_randomly(project))
+        return t
+
+    @staticmethod
+    def act_randomly(project):
+        _, durations = project.state()
+        best_action = np.random.choice(project.get_actions())
+        return best_action, durations
+
+    @staticmethod
+    def act_priority_rules(project, type='max'):
+        _, durations = project.state()
+        possible_actions = project.df[project.get_unique_tasks()].sort_values(by='duration')
+        print(possible_actions)

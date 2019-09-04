@@ -4,55 +4,8 @@ from typing import List
 
 import numpy as np
 
-from thesis.Project import Project
-
-
-class Agent:
-    def __init__(self, projects: List[Project], model):
-        self.model = model.model
-        self.projects = projects
-        self.project_id = 0
-        self.project = projects[self.project_id]
-        self.tensorboard = model.tensorboard
-        self.model_name = model.model_name
-        self.topology = np.reshape(self.project.adjacency(), (-1, 1))
-        self.num_of_tasks = self.project.num_of_tasks
-
-    def next_project(self):
-        """Reset the current project and switch the project to the next one."""
-        self.project.reset()
-        if self.project_id == len(self.projects) - 1:
-            self.project_id = 0
-        else:
-            self.project_id += 1
-        self.project = self.projects[self.project_id]
-        self.num_of_tasks = self.project.num_of_tasks
-
-    def input_vector(self, state, action, topology=True):
-        """Helper function to construct the input vector.
-
-        :param state:
-        :param action:
-        :param topology: when set to true the topology is used when creating
-        the input vector
-        :return:
-        """
-        actions = np.zeros((self.num_of_tasks, 1))
-        actions[action] = 1
-
-        if topology:
-            return np.concatenate((actions, state, self.topology)).reshape((1, -1))
-        else:
-            return np.concatenate((actions, state)).reshape((1, -1))
-
-    def cnn_topology(self):
-        pass
-
-    def get_best_action(self, state, actions):
-        inputs = np.squeeze(np.array([self.input_vector(state, action) for action in actions]))
-        action_values = np.squeeze(self.model.predict(inputs, len(inputs)))
-        max_val = np.argmax(action_values)
-        return action_values[max_val], actions[max_val], self.input_vector(state, actions[max_val])
+from agents import Agent
+from project import Project
 
 
 class ForwardSarsaLambda(Agent):
@@ -191,6 +144,8 @@ class ForwardSarsaLambda(Agent):
         (1-ϵ) the action with the highest value will be executed. ϵ is usually
         decreasing during training to converge the policy's decision making
         process.
+
+        :return: value, best action, durations, state action
         """
         state, durations = self.project.state()
         actions = self.project.get_actions()

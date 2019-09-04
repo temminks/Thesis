@@ -1,4 +1,4 @@
-from thesis.Project import Project
+from project import Project
 
 """
 Adjacency list of the first tasks of the 301_1 project
@@ -25,7 +25,7 @@ Execution of tasks (2, 3) is impossible: 4+10>12 (resource 1 constraint)
 Execution of tasks (3, 4) is possible: 10+0<12, 0+3<12
 """
 
-project_path = "../data/J30/j301_1.sm"
+project_path = "./data/J30/j301_1.sm"
 
 
 def test_possible_tasks():
@@ -39,7 +39,7 @@ def test_possible_tasks_1():
     """Tests for possible tasks at the beginning of the project."""
     project = Project(project_path)
     project.finished_tasks += [4]
-    assert project.possible_tasks(1) == {2, 3},\
+    assert project.possible_tasks(1) == {2, 3}, \
         'after finishing task 4, it is no longer a possible tasks'
 
 
@@ -47,7 +47,7 @@ def test_possible_tasks_2():
     """Tests for possible tasks with no possible tasks"""
     project = Project(project_path)
     project.finished_tasks += [2, 3, 4]
-    assert project.possible_tasks(1) == set(),\
+    assert project.possible_tasks(1) == set(), \
         'after finishing task 2, 3 and 4, there are no more possible tasks.'
 
 
@@ -55,7 +55,7 @@ def test_possible_tasks_3():
     """Test for possible tasks."""
     project = Project(project_path)
     project.finished_tasks += [4, 9]
-    assert project.possible_tasks(1) == {2, 3},\
+    assert project.possible_tasks(1) == {2, 3}, \
         'after finishing tasks [4, 9], we can start 1\'s successors, except 4'
     assert project.possible_tasks(4) == {5, 10}, 'after finishing' \
                                                  " tasks [4, 9], we can start 4's successors, except 9"
@@ -88,5 +88,4 @@ def test_get_actions_2():
 def test_adjacency():
     """"""
     project = Project(project_path)
-    print(project.adjacency())
-    assert False
+    assert len(project.topology()) == 32

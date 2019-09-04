@@ -1,5 +1,3 @@
-import numpy as np
-
 from archive.Activation import *
 
 
@@ -124,7 +122,7 @@ class Model:
             self.second_moment[l - 1] = self.second_moment[l - 1] * beta_2 + (1 - beta_2) * \
                                         (gradients['dW' + str(l + 1)] ** 2)
             self.second_moment_bias[l - 1] = self.second_moment_bias[l - 1] * beta_2 + (
-                        1 - beta_2) * \
+                    1 - beta_2) * \
                                              (gradients['db' + str(l + 1)] ** 2)
 
             # bias correction
@@ -134,9 +132,9 @@ class Model:
             second_moment_bias_corrected = self.second_moment_bias[l - 1] / (1 - (beta_2 ** t))
 
             weight_update = first_moment_corrected / (
-                        np.sqrt(second_moment_corrected) + self.epsilon)
+                    np.sqrt(second_moment_corrected) + self.epsilon)
             bias_update = first_moment_bias_corrected / (
-                        np.sqrt(second_moment_bias_corrected) + self.epsilon)
+                    np.sqrt(second_moment_bias_corrected) + self.epsilon)
             self.parameters['W' + str(l)] -= self.learning_rate * weight_update
             self.parameters['b' + str(l)] -= self.learning_rate * bias_update
 

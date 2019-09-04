@@ -1,6 +1,6 @@
 import pytest
 
-from thesis.Run import ForwardSarsaLambdaRunner
+from run import ForwardSarsaLambdaRunner
 
 
 def test_runner_init():

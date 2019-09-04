@@ -1,14 +1,16 @@
 import json
 
-from thesis.ForwardSarsaLambda import ForwardSarsaLambda
-from thesis.Project import Project
-from thesis.Stochastic import Stochastic
+from ForwardSarsaLambda import ForwardSarsaLambda
+from PPO import PPO
+from models import models
+from project import Project
+from stochastic import Stochastic
 
 
 class J30Runner:
     """Loads the J30 projects."""
-    def __init__(self, train=True, stochastic: str = 'uniform_2'):
 
+    def __init__(self, train=True, stochastic: str = 'uniform_2'):
         self.path = './data/J30/j30'
         self.distributions = [func for func in dir(Stochastic) if
                               callable(getattr(Stochastic, func)) and not func.startswith("__")]
@@ -120,9 +122,12 @@ class ForwardSarsaLambdaJ30Runner(ForwardSarsaLambdaRunner):
         self.__lam = lam
 
 
-class PPORunner:
-    def __init__(self, clipping_rate=0.2):
+class PPORunner(J30Runner):
+    def __init__(self, episodes, model: models.Model, action_dim, clipping_rate=0.2):
+        super().__init__(train=False)
+
         self.clipping_rate = clipping_rate
+        self.PPO = PPO(episodes, self.projects, model, action_dim, clipping_rate)
 
     @property
     def clipping_rate(self):

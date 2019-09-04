@@ -3,7 +3,7 @@ from itertools import chain, combinations
 
 import pandas as pd
 
-from thesis.Stochastic import *
+from stochastic import *
 
 
 class Project:
@@ -16,7 +16,7 @@ class Project:
         with open(path, "r") as f:
             self.file = f.readlines()
 
-        self.path = path
+        self.path: str = path
         # self.general_df = self.general()
         self.project_df = self.project()
         self.num_of_tasks = int(self.project_df.loc['jobs (incl. supersource/sink )'])
@@ -44,7 +44,7 @@ class Project:
         project.update(dict(zip(*[line.split() for line in self.file[13:15]])))
         return pd.DataFrame.from_dict(project, orient='index', columns=['value'])
 
-    def resource_limits(self):
+    def resource_limits(self) -> pd.DataFrame:
         """Calculate the resource constrictions (limits).
 
         There are always exactly four resources in the test problems.
@@ -89,7 +89,7 @@ class Project:
 
         return relations_df, durations_df
 
-    def init_tasks(self):
+    def init_tasks(self) -> pd.DataFrame:
         """Merge/join relations and durations into one single pd.DataFrame.
 
         Also: set the column types to numeric (when possible).
@@ -114,7 +114,7 @@ class Project:
         df.index = df.index.map(int)
         return df.apply(pd.to_numeric, errors='ignore')
 
-    def possible_tasks(self, key):
+    def possible_tasks(self, key) -> set:
         """A job can only be started when all of its predecessors are finished.
 
         This method returns - based on the job with id key and a list of already
@@ -132,25 +132,29 @@ class Project:
 
         return set(possible_tasks) - set(self.running.keys()) - set(self.finished_tasks)
 
-    def get_actions(self):
+    def get_unique_tasks(self) -> list:
+        tasks = [self.possible_tasks(job) for job in self.finished_tasks if job not in self.running]
+        return list(set(item for sublist in tasks for item in sublist))
+
+    def get_actions(self) -> list:
         """Get all feasible actions, i.e. those actions whose preceding tasks
         are all completed and for which there are enough resources available to
         start the action. An action can consist of no, one and several tasks.
 
         :return: all feasible actions, i.e. the powerset of all feasible tasks
         """
-        tasks = [self.possible_tasks(job) for job in self.finished_tasks if job not in self.running]
-        unique_tasks = list(set(item for sublist in tasks for item in sublist))
+        unique_tasks = self.get_unique_tasks()
         powerset = chain.from_iterable([list(x) for x in combinations(unique_tasks, r)]
                                        for r in range(1, len(unique_tasks) + 1))
 
         feasible = [[]]
-        for action in powerset:
-            if min(self.limits.available -
-                   self.df[['R 1', 'R 2', 'R 3', 'R 4']].loc[action].sum(axis='rows')) >= 0:
-                feasible.append(action)
+        feasible.extend([action for action in powerset if self.is_feasible(action)])
 
         return feasible
+
+    def is_feasible(self, action):
+        consumption = self.df[['R 1', 'R 2', 'R 3', 'R 4']].loc[action].sum(axis='rows')
+        return min(self.limits.available - consumption) >= 0
 
     def reset(self):
         """Reset the project (all finished and running tasks and the resource limits)."""
@@ -189,7 +193,7 @@ class Project:
                     self.running.pop(key)
                     self.finished_tasks.append(key)
         else:
-            # penalty for doing nothing although there are no running tasks
+            # penalty for waiting although there are no running tasks
             time_next_finished = 1
 
         return time_next_finished
@@ -197,7 +201,7 @@ class Project:
     def is_finished(self) -> bool:
         return len(self.finished_tasks) >= (self.num_of_tasks - 1)
 
-    def adjacency(self) -> np.array:
+    def topology(self) -> np.array:
         """Returns the adjacency matrix for the topology.
 
         The weighted adjacency matrix is 0 if there is no connection between two
@@ -206,7 +210,7 @@ class Project:
 
         :return: single column adjacency matrix
         """
-        topology = []
+        top = []
         for task in self.df.iterrows():
             successors = task[1].successors
             durations = [self.df.loc[s].duration for s in successors]
@@ -215,9 +219,9 @@ class Project:
             if len(successors) > 0:
                 successors = np.add(successors, -1)
                 row[successors] = durations
-            topology.append(row.tolist())
+            top.append(row.tolist())
 
-        return topology
+        return top
 
     def state(self) -> np.array:
         """Representation of the projects state that consists of the running
@@ -227,8 +231,11 @@ class Project:
         :return: stacked state representation with dimension (-1, 1)
         :rtype: np.array
         """
+
+        # get a unique list of tasks that could be started
         tasks = [self.possible_tasks(job) for job in self.finished_tasks if job not in self.running]
         possible_tasks = list(set(item for sublist in tasks for item in sublist))
+
         encoded_durations: list = []
         encoded_resources: list = []
         encoded_successors: list = []
